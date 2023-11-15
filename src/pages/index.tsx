@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { ReactNode, useEffect } from 'react';
 import { AnimationDefinition, motion, useAnimation } from 'framer-motion';
 
 type BubblePosition = {
@@ -6,35 +6,52 @@ type BubblePosition = {
   y: number;
 };
 
+const texts = ['.NET CORE', 'AZURE', 'angular', 'GATSBY JS', 'IO'];
+const BUBBLE_MAX_WIDTH = 100;
+const BUBBLE_MIN_WIDTH = 80;
+
+const BUBBLE_SIZES = {
+  max: BUBBLE_MAX_WIDTH,
+  min: BUBBLE_MIN_WIDTH,
+};
+
 const TextBubble = ({
   x,
   y,
   index,
+  children,
 }: {
   x: number;
   y: number;
   index: number;
+  children?: ReactNode;
 }) => {
+  console.log('Individual bubble rendered');
   const controls = useAnimation();
 
   const appearAnimation: AnimationDefinition = {
     opacity: 1,
     y,
     transition: {
-      duration: 0.25,
+      duration: generateRandomDurationInSeconds({ min: 0.8, max: 1.5 }),
       ease: 'easeInOut',
     },
   };
 
-  function getRandomFloatingDuration() {
-    // Generate a random float duration between 2 and 4 seconds for each bubble
-    return Math.random() * (4 - 2) + 2;
+  function generateRandomDurationInSeconds({
+    min,
+    max,
+  }: {
+    min: number;
+    max: number;
+  }): number {
+    return Math.random() * (max - min) + min;
   }
 
   const floatAnimation: AnimationDefinition = {
     y: [y, y + 20, y],
     transition: {
-      duration: getRandomFloatingDuration(),
+      duration: generateRandomDurationInSeconds({ min: 2, max: 4 }),
       ease: 'easeInOut',
       repeat: Infinity,
       repeatType: 'reverse',
@@ -46,11 +63,10 @@ const TextBubble = ({
     'lightblue',
     'green',
     'lightyellow',
-    'lightpurple',
+    'purple',
     'orange',
     'pink',
   ];
-  const texts = ['.NET CORE', 'AZURE', 'angular', 'GATSBY JS', 'IO'];
 
   const colorIndex = index % colors.length;
   const selectedColor = colors[colorIndex];
@@ -62,7 +78,13 @@ const TextBubble = ({
 
   useEffect(() => {
     animationSequence();
-  }, [controls, y]);
+  }, [controls]);
+
+  const minMax = Math.random() < 0.5 ? 'max' : 'min';
+
+  const width = !children ? '30px' : `${BUBBLE_SIZES[minMax]}px`;
+  const height = !children ? '30px' : width;
+  const fontSize = width === `${BUBBLE_SIZES.max}px` ? '18px' : '14px';
 
   return (
     <motion.div
@@ -73,19 +95,19 @@ const TextBubble = ({
         left: x,
         top: y,
         textTransform: 'uppercase',
-        padding: '20px',
-        minWidth: '40px',
-        maxWidth: '100px',
-        height: 'auto',
+        padding: !children ? '0' : '20px',
+        width: width,
+        height: height,
         display: 'flex',
         alignItems: 'center',
         justifyContent: 'center',
         textAlign: 'center',
         borderRadius: '50%',
-        backgroundColor: 'lightyellow',
+        backgroundColor: selectedColor,
+        fontSize: fontSize,
       }}
     >
-      {texts[index]}
+      {children}
     </motion.div>
   );
 };
@@ -93,6 +115,7 @@ const TextBubble = ({
 const CONTAINER_PADDING_X = 600;
 
 const TextBubbles = ({ numBubbles }: any) => {
+  console.log('bubble container rendered');
   function getRandomPosition() {
     const bubbleDiameter = 80;
     const spaceAroundBubble = 40;
@@ -112,8 +135,7 @@ const TextBubbles = ({ numBubbles }: any) => {
     otherPositions: { x: number; y: number }[],
     padding: number
   ): boolean {
-    const bubbleDiameter = 80;
-    const bubbleRadius = bubbleDiameter / 2;
+    const bubbleRadius = BUBBLE_MAX_WIDTH / 2;
     const totalRadiusWithPadding = bubbleRadius + padding;
 
     const isCollision = (otherPosition: { x: number; y: number }): boolean => {
@@ -128,7 +150,10 @@ const TextBubbles = ({ numBubbles }: any) => {
   }
 
   function getBubblePositions(): BubblePosition[] {
-    const positions: BubblePosition[] = [];
+    const positions: BubblePosition[] = [
+      { x: CONTAINER_PADDING_X - 80, y: 30 },
+      { x: 2500 - CONTAINER_PADDING_X, y: 170 },
+    ];
     const padding = 20;
 
     for (let i = 0; i < numBubbles; i++) {
@@ -137,7 +162,7 @@ const TextBubbles = ({ numBubbles }: any) => {
         newPosition = getRandomPosition();
       } while (checkCollision(newPosition, positions, padding));
 
-      positions.push(newPosition);
+      positions.unshift(newPosition); // we want to add new bubbles to the start of the array so that they are the ones receiving the text on the render map
     }
 
     return positions;
@@ -153,13 +178,16 @@ const TextBubbles = ({ numBubbles }: any) => {
       }}
     >
       {getBubblePositions().map((position, index) => (
-        <TextBubble key={index} x={position.x} y={position.y} index={index} />
+        <TextBubble key={index} x={position.x} y={position.y} index={index}>
+          {texts[index]}
+        </TextBubble>
       ))}
     </div>
   );
 };
 
 const App = () => {
+  console.log('app rendered');
   return (
     <div
       style={{
@@ -167,7 +195,7 @@ const App = () => {
         position: 'relative',
       }}
     >
-      <TextBubbles numBubbles={5} />
+      <TextBubbles numBubbles={texts.length} />
     </div>
   );
 };
